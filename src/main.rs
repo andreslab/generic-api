@@ -5,6 +5,8 @@ use futures::StreamExt;
 use json::JsonValue;
 use serde::{Deserialize, Serialize};
 
+mod db;
+
 #[derive(Debug, Serialize, Deserialize)]
 struct User {
     id: i32,
@@ -30,6 +32,12 @@ async fn extract_item(item: web::Json<User>, req: HttpRequest) -> HttpResponse {
 }
 
 ////////////////////////////////////////////////////////////
+
+async fn resetDb() -> HttpResponse {
+    db::run();
+    db::get_user();
+    return HttpResponse::Ok().finish(); // <- send response
+}
 
 async fn getUserWithToken(req: HttpRequest) -> HttpResponse {
     let token = req.headers().get("token").unwrap();
@@ -100,6 +108,7 @@ async fn main() -> std::io::Result<()> {
                     .route(web::post().to(extract_item)),
             )
             .service(web::resource("/").route(web::post().to(index)))
+            .service(web::resource("/reset").route(web::get().to(resetDb)))
             .service(web::resource("/get/{user}").route(web::get().to(getUser)))
             .service(web::resource("/getwithtoken").route(web::get().to(getUserWithToken)))
             .service(web::resource("/add").route(web::post().to(addUser)))
